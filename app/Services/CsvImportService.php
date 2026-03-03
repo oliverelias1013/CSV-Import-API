@@ -10,8 +10,6 @@ class CsvImportService
 {
     public function import(UploadedFile $file): array
     {
-        $this->validator->reset();
-
         $path = $file->getRealPath();
         $handle = fopen($path, 'r');
 
@@ -28,7 +26,13 @@ class CsvImportService
         }
 
         // Normalize headers
-        $header = array_map(fn($h) => strtolower(trim($h)), $header);
+
+        $header = array_filter(
+            array_map(fn($h) => strtolower(trim($h)), $header),
+            fn($h) => $h !== ''
+        );
+        $header = array_values($header);
+        $expectedColumnCount = count($header);
         $expectedHeaders = ['name', 'email', 'date_of_birth', 'annual_income'];
 
         if (array_diff($expectedHeaders, $header) !== []) {
@@ -49,32 +53,32 @@ class CsvImportService
             return $this->fatalError('The file contains only a header row with no data.');
         }
 
-        // First pass: collect all emails and find duplicates
-        $emailRowMap = []; // email => [row numbers]
+        $emailRowMap = [];
         $csvRows = [];
+        $rowNumber = 1;
 
-        $rowNumber = 1; // 1-based, row 1 = first data row (row 2 in file including header)
         foreach ($rawRows as $raw) {
             $rowNumber++;
 
-            // Skip truly empty rows (all fields blank or null)
             $isEmpty = count(array_filter($raw, fn($v) => trim($v) !== '')) === 0;
             if ($isEmpty) {
                 continue;
             }
+            
+            $nonEmptyKeys = array_keys(array_filter($raw, fn($v) => trim($v) !== ''));
+            $trimmedRaw = array_slice($raw, 0, max($nonEmptyKeys) + 1);
 
-            // Handle wrong column count
-            if (count($raw) !== count($header)) {
+            if (count($trimmedRaw) !== $expectedColumnCount) {
                 $csvRows[] = [
                     'row_number' => $rowNumber,
                     'data' => null,
                     'malformed' => true,
-                    'column_count' => count($raw),
+                    'column_count' => count($trimmedRaw),
                 ];
                 continue;
             }
 
-            $data = array_combine($header, $raw);
+            $data = array_combine($header, $trimmedRaw);
             $email = strtolower(trim($data['email'] ?? ''));
 
             if ($email !== '') {
@@ -92,27 +96,21 @@ class CsvImportService
             return $this->fatalError('The file contains only empty rows.');
         }
 
-        // Find in-file duplicate emails (appear more than once)
         $inFileDuplicates = array_filter($emailRowMap, fn($rows) => count($rows) > 1);
-
-        // Fetch existing DB emails for uniqueness check
         $existingEmails = Customer::pluck('email')->map(fn($e) => strtolower($e))->toArray();
 
-        // Second pass: validate and import
         $errors = [];
         $imported = [];
         $failedRowNumbers = [];
 
-        // We need to track which rows are invalid due to in-file duplicates
         foreach ($csvRows as $csvRow) {
             $rowNumber = $csvRow['row_number'];
-
             if ($csvRow['malformed']) {
                 $errors[] = [
                     'row' => $rowNumber,
                     'errors' => [[
                         'field' => 'row',
-                        'message' => "Row has {$csvRow['column_count']} columns but expected " . count($header) . '.',
+                        'message' => "Row has {$csvRow['column_count']} columns but expected {$expectedColumnCount}.",
                     ]],
                 ];
                 $failedRowNumbers[] = $rowNumber;
@@ -172,7 +170,6 @@ class CsvImportService
         if ($name === '') {
             $errors[] = ['field' => 'name', 'message' => 'Name is required.'];
         }
-
         if ($email === '') {
             $errors[] = ['field' => 'email', 'message' => 'Email is required.'];
         } elseif (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
