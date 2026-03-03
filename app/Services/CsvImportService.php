@@ -8,8 +8,6 @@ use Illuminate\Http\UploadedFile;
 
 class CsvImportService
 {
-    public function __construct(private CsvValidatorService $validator) {}
-
     public function import(UploadedFile $file): array
     {
         $this->validator->reset();
