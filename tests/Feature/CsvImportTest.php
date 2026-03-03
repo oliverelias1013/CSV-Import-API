@@ -32,7 +32,7 @@ class CsvImportTest extends TestCase
         $csv .= "Alice Smith,alice@example.com,1990-05-10,50000\n";
         $csv .= "Bob Jones,bob@example.com,1985-03-22,75000\n";
 
-        $response = $this->postJson('/api/import', [], [], ['file' => $this->makeCsv($csv)]);
+        $response = $this->postJson('/import', [], [], ['file' => $this->makeCsv($csv)]);
 
         $response->assertStatus(200)
             ->assertJson([
@@ -58,7 +58,7 @@ class CsvImportTest extends TestCase
         $csv .= "Alice Smith,alice@example.com,1990-05-10,50000\n";   // valid
         $csv .= ",not-an-email,2099-01-01,-100\n";                     // all fields bad
 
-        $response = $this->postJson('/api/import', [], [], ['file' => $this->makeCsv($csv)]);
+        $response = $this->postJson('/import', [], [], ['file' => $this->makeCsv($csv)]);
 
         $response->assertStatus(200);
         $data = $response->json();
@@ -84,7 +84,7 @@ class CsvImportTest extends TestCase
         $csv .= "Bob,bob@example.com,,\n";        // row 3 - valid
         $csv .= "Alice2,alice@example.com,,\n";   // row 4 - duplicate of row 2
 
-        $response = $this->postJson('/api/import', [], [], ['file' => $this->makeCsv($csv)]);
+        $response = $this->postJson('/import', [], [], ['file' => $this->makeCsv($csv)]);
 
         $response->assertStatus(200);
         $data = $response->json();
@@ -106,7 +106,7 @@ class CsvImportTest extends TestCase
         $csv = "name,email,date_of_birth,annual_income\n";
         $csv .= "New Person,existing@example.com,,\n";
 
-        $response = $this->postJson('/api/import', [], [], ['file' => $this->makeCsv($csv)]);
+        $response = $this->postJson('/import', [], [], ['file' => $this->makeCsv($csv)]);
 
         $response->assertStatus(200);
         $data = $response->json();
@@ -125,7 +125,7 @@ class CsvImportTest extends TestCase
         $csv = "name,email,date_of_birth,annual_income\n";
         $csv .= ",valid@example.com,,\n";
 
-        $response = $this->postJson('/api/import', [], [], ['file' => $this->makeCsv($csv)]);
+        $response = $this->postJson('/import', [], [], ['file' => $this->makeCsv($csv)]);
         $data = $response->json();
 
         $this->assertEquals(1, $data['failed_count']);
@@ -138,7 +138,7 @@ class CsvImportTest extends TestCase
         $csv = "name,email,date_of_birth,annual_income\n";
         $csv .= "John Doe,,,\n";
 
-        $response = $this->postJson('/api/import', [], [], ['file' => $this->makeCsv($csv)]);
+        $response = $this->postJson('/import', [], [], ['file' => $this->makeCsv($csv)]);
         $data = $response->json();
 
         $this->assertEquals(1, $data['failed_count']);
@@ -151,7 +151,7 @@ class CsvImportTest extends TestCase
         $csv = "name,email,date_of_birth,annual_income\n";
         $csv .= "John Doe,not-an-email,,\n";
 
-        $response = $this->postJson('/api/import', [], [], ['file' => $this->makeCsv($csv)]);
+        $response = $this->postJson('/import', [], [], ['file' => $this->makeCsv($csv)]);
         $data = $response->json();
 
         $this->assertEquals(1, $data['failed_count']);
@@ -164,7 +164,7 @@ class CsvImportTest extends TestCase
         $csv = "name,email,date_of_birth,annual_income\n";
         $csv .= "John Doe,john@example.com,2099-01-01,\n";
 
-        $response = $this->postJson('/api/import', [], [], ['file' => $this->makeCsv($csv)]);
+        $response = $this->postJson('/import', [], [], ['file' => $this->makeCsv($csv)]);
         $data = $response->json();
 
         $this->assertEquals(1, $data['failed_count']);
@@ -177,7 +177,7 @@ class CsvImportTest extends TestCase
         $csv = "name,email,date_of_birth,annual_income\n";
         $csv .= "John Doe,john@example.com,,-500\n";
 
-        $response = $this->postJson('/api/import', [], [], ['file' => $this->makeCsv($csv)]);
+        $response = $this->postJson('/import', [], [], ['file' => $this->makeCsv($csv)]);
         $data = $response->json();
 
         $this->assertEquals(1, $data['failed_count']);
@@ -190,7 +190,7 @@ class CsvImportTest extends TestCase
         $csv = "name,email,date_of_birth,annual_income\n";
         $csv .= "John Doe,john@example.com,,0\n";
 
-        $response = $this->postJson('/api/import', [], [], ['file' => $this->makeCsv($csv)]);
+        $response = $this->postJson('/import', [], [], ['file' => $this->makeCsv($csv)]);
         $data = $response->json();
 
         $this->assertEquals(1, $data['failed_count']);
@@ -200,14 +200,14 @@ class CsvImportTest extends TestCase
 
     public function test_empty_file_returns_error(): void
     {
-        $response = $this->postJson('/api/import', [], [], ['file' => $this->makeCsv('')]);
+        $response = $this->postJson('/import', [], [], ['file' => $this->makeCsv('')]);
         $response->assertStatus(422)->assertJsonStructure(['error']);
     }
 
     public function test_headers_only_returns_error(): void
     {
         $csv = "name,email,date_of_birth,annual_income\n";
-        $response = $this->postJson('/api/import', [], [], ['file' => $this->makeCsv($csv)]);
+        $response = $this->postJson('/import', [], [], ['file' => $this->makeCsv($csv)]);
         $response->assertStatus(422)->assertJsonStructure(['error']);
     }
 
@@ -215,7 +215,7 @@ class CsvImportTest extends TestCase
     {
         $csv = "foo,bar,baz\n";
         $csv .= "a,b,c\n";
-        $response = $this->postJson('/api/import', [], [], ['file' => $this->makeCsv($csv)]);
+        $response = $this->postJson('/import', [], [], ['file' => $this->makeCsv($csv)]);
         $response->assertStatus(422)->assertJsonStructure(['error']);
     }
 
@@ -224,7 +224,7 @@ class CsvImportTest extends TestCase
         $csv = "name,email,date_of_birth,annual_income\n";
         $csv .= "John,john@example.com\n"; // only 2 columns
 
-        $response = $this->postJson('/api/import', [], [], ['file' => $this->makeCsv($csv)]);
+        $response = $this->postJson('/import', [], [], ['file' => $this->makeCsv($csv)]);
         $data = $response->json();
 
         $this->assertEquals(1, $data['failed_count']);
@@ -237,7 +237,7 @@ class CsvImportTest extends TestCase
         $csv .= ",,, \n"; // empty row
         $csv .= "\n";      // blank line
 
-        $response = $this->postJson('/api/import', [], [], ['file' => $this->makeCsv($csv)]);
+        $response = $this->postJson('/import', [], [], ['file' => $this->makeCsv($csv)]);
         $data = $response->json();
 
         $this->assertEquals(1, $data['total_rows_processed']);
@@ -249,7 +249,7 @@ class CsvImportTest extends TestCase
         $csv = "name,email,date_of_birth,annual_income\n";
         $csv .= ",bad-email,2099-01-01,-50\n"; // 4 errors
 
-        $response = $this->postJson('/api/import', [], [], ['file' => $this->makeCsv($csv)]);
+        $response = $this->postJson('/import', [], [], ['file' => $this->makeCsv($csv)]);
         $data = $response->json();
 
         $this->assertEquals(1, $data['failed_count']);
@@ -262,7 +262,7 @@ class CsvImportTest extends TestCase
     {
         Customer::factory()->count(20)->create();
 
-        $response = $this->getJson('/api/customers?per_page=5');
+        $response = $this->getJson('/customers?per_page=5');
         $response->assertStatus(200)
             ->assertJsonStructure(['data', 'current_page', 'total', 'per_page']);
 

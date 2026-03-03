@@ -694,7 +694,7 @@
         formData.append('file', file);
 
         try {
-            const res = await fetch('/api/import', {
+            const res = await fetch('/import', {
                 method: 'POST',
                 headers: { 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content },
                 body: formData
@@ -817,7 +817,7 @@
         tbody.innerHTML = `<tr><td colspan="5" style="text-align:center;color:var(--text-muted);padding:24px;font-family:var(--mono);font-size:12px;">Loading...</td></tr>`;
 
         try {
-            const res = await fetch(`/api/customers?page=${page}&per_page=10`);
+            const res = await fetch(`/customers?page=${page}&per_page=10`);
             const data = await res.json();
             lastPage = data.last_page || 1;
 

@@ -17,7 +17,6 @@ class Customer extends Model
     ];
 
     protected $casts = [
-        'date_of_birth' => 'date',
         'annual_income' => 'decimal:2',
     ];
 }
